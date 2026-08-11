@@ -1,0 +1,73 @@
+name: Code Review Bot
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.draft == false
+
+    steps:
+      - name: Notify — PR opened
+        if: github.event_name == 'pull_request'
+        uses: victor-kastro/code-review-action@main
+        with:
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack-channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          event: pr_opened
+          pr-number: ${{ github.event.pull_request.number }}
+          pr-title: ${{ github.event.pull_request.title }}
+          author: ${{ github.event.pull_request.user.login }}
+          pr-url: ${{ github.event.pull_request.html_url }}
+          repo: ${{ github.repository }}
+
+      - name: Notify — Review submitted
+        if: github.event_name == 'pull_request_review'
+        uses: victor-kastro/code-review-action@main
+        with:
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack-channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          event: pr_review_submitted
+          pr-number: ${{ github.event.pull_request.number }}
+          pr-title: ${{ github.event.pull_request.title }}
+          author: ${{ github.event.pull_request.user.login }}
+          pr-url: ${{ github.event.pull_request.html_url }}
+          reviewer: ${{ github.event.review.user.login }}
+          state: ${{ github.event.review.state }}
+          repo: ${{ github.repository }}
+
+      - name: Notify — PR comment (issue_comment)
+        if: >
+          github.event_name == 'issue_comment' &&
+          github.event.issue.pull_request != null
+        uses: victor-kastro/code-review-action@main
+        with:
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack-channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          event: pr_comment_added
+          pr-number: ${{ github.event.issue.number }}
+          commenter: ${{ github.event.comment.user.login }}
+          comment-url: ${{ github.event.comment.html_url }}
+          repo: ${{ github.repository }}
+
+      - name: Notify — Review comment on diff
+        if: github.event_name == 'pull_request_review_comment'
+        uses: victor-kastro/code-review-action@main
+        with:
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack-channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          event: pr_comment_added
+          pr-number: ${{ github.event.pull_request.number }}
+          commenter: ${{ github.event.comment.user.login }}
+          comment-url: ${{ github.event.comment.html_url }}
+          repo: ${{ github.repository }}
